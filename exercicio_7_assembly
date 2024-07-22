@@ -1,0 +1,128 @@
+.data
+
+vetor: .word 5, 9, 2, 8, 7, 1, 14, 2, -1
+msg_menor: .asciiz " O menor número é: "
+msg_ordennado: .asciiz "Vetor ordenado: "
+espaco: .asciiz " "
+# dois loops, um externo pra percorrer o vetor e um externo pra encontrar o menor elemento
+
+.text
+main:
+	move $t2, $zero # variável temporária pra colocar o menor número
+	move $t5, $zero # i = 0
+	la $t1, vetor
+
+	j loop_externo
+
+loop_externo:
+	lw $t3, ($t1)
+	beq $t3, -1, fim
+	
+	move $t6, $t5 # índice do loop interno começa com atual
+	move $t4, $t3
+	move $s0, $t5 # índice do t4 (menor número de agr)
+	
+	move $t7, $t1 # endereço do vetor pra ter um ponteiro já q eu nn quero que modifique o vetor principal
+	
+	#li $v0, 1
+	#move $a0, $t4
+	#syscall
+	
+	j loop_interno
+	
+loop_interno:
+	add $t7, $t7, 4
+	lw $t3, ($t7) 
+	beq $t3, -1, troca
+	add $t6, $t6, 1 # índice interno do loop vai atualizando
+	
+	bge $t3, $t4, loop_interno # como t4 é o primeiro número do vetor, se o vetor[i] for maior ou igal que ele volta pro loop interno já que nn precisa trocar de posição
+	#li $v0, 1
+	#move $a0, $t3
+	#syscall
+	
+	move $t4, $t3 # t3 (número do vetor de agr) é menor que o primeiro do vetor, muda de posição e pointeiros pra nn trocar nd
+	move $s0, $t6
+	j loop_interno
+
+troca:
+	beq $t5, $s0, proximo_externo # se o índice externo = índice interno (os dois tão na mesma página de quem é o menor número) nn precisa fazer a troca
+	
+	#li $v0, 1
+	#move $a0, $t3
+	#syscall
+	
+	move $t8, $t1 # nn quero mudar o t1 tbm (vetor) ent faço um ponteiro
+	move $t9, $t5 # nn quero mudar o índice externo então só estou criando um pointer p ele e colocando registrador do pulo (retorno) no v0 
+	jal calcular_endereco
+	move $s1, $v0 #retorno do calcular endereco vai pro v0 endereço_vetor[indice_do_menor]
+	lw $t2, ($s1) # colocando o retorno do calcular endereco (s1) na variavel temporaria | vetor[indice_menor] vai pra temporaria
+	#li $v0, 1
+	#move $a0, $t2
+	#syscall
+	
+	move $t8, $t1 #endereço normal do vetor colocado no novo ponteiro
+	move $t9, $s0 # menor numero
+	jal calcular_endereco
+	move $s2, $v0 
+	lw $t3, ($s2)
+	
+	sw $t3, ($s1) # vetor[i] = vetor[indice_do_menor]
+	sw $t2, ($s2)
+	
+proximo_externo:
+	add $t5, $t5, 1
+	la $t1, vetor
+	move $t0, $zero # vai ter q reiniciar o ponteiro se nn o número nn atualiza conforme for indo
+	
+loop_atualiza_ponteiro_do_vetor_principal:
+	beq $t0, $t5, loop_externo 
+	add $t1, $t1, 4 # isso se faz aqui no loop
+	add $t0, $t0, 1
+	j loop_atualiza_ponteiro_do_vetor_principal
+	
+	
+calcular_endereco:
+	move $v0, $t8 
+	move $t0, $zero # cont = 0
+
+calcular_loop:
+	beq $t0, $t9, calcular_fim
+	add $v0, $v0, 4 # 4 bytes
+	add $t0, $t0, 1
+	j calcular_loop
+
+calcular_fim:
+	jr $ra	# ra = registrador colocado novo
+
+fim:
+	#li $v0, 4
+	#la $a0, msg_menor # print da msg de menor número
+	#syscall
+	#li $v0, 1
+	#move $a0, $t4 #printando o menor número
+	#syscall
+	li $v0, 4
+	la $a0, msg_ordennado
+	syscall
+	
+	la $t1, vetor
+	
+print:
+	lw $t3, ($t1)
+	beq $t3, -1, sair
+	li $v0, 1
+        move $a0, $t3
+        syscall
+    
+        li $v0, 4
+        la $a0, espaco
+        syscall	
+    
+	add $t1, $t1, 4
+	j print
+	
+
+sair:
+    li $v0, 10 # lucas q me ensinou
+    syscall
